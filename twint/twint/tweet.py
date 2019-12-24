@@ -1,11 +1,13 @@
 from time import strftime, localtime
 from datetime import datetime
 import json
-
+import sys
 import logging as logme
 from googletransx import Translator
-import locale
-locale.setlocale(locale.LC_ALL, 'en')
+
+if sys.platform != 'darwin':
+    import locale
+    locale.setlocale(locale.LC_ALL, 'en')
 # ref. 
 # - https://github.com/x0rzkov/py-googletrans#basic-usage
 translator = Translator()

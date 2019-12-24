@@ -68,7 +68,7 @@ class TwitterDownloader:
 
             for plist in playlist.playlists[-1:]:
                 resolution = str(plist.stream_info.resolution[0]) + 'x' + str(plist.stream_info.resolution[1])
-                resolution_file = Path(self.storage) / Path(self.tweet_data['id'] + '.mp4')
+                resolution_file = Path(self.storage) / Path(self.tweet_data['id'] + '_' + resolution+'.mp4')
 
                 print('[+] Downloading ' + self.tweet_data['id'])
 
