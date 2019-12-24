@@ -1,13 +1,15 @@
 import os
-
+import sys
+import locale
 from twint import twint
+
 
 
 # Configure
 class AllTwitter():
-    def __init__(self, user):
+    def __init__(self, user,):
         self.user = user
-        self.following_file = '124419.txt'
+        self.following_file = user+'.txt'
         self.save_dir='follow'
 
     def get_all_followling(self):
@@ -38,9 +40,9 @@ class AllTwitter():
                 c.Proxy_type = 'http'
                 c.Username = follow
                 c.Output = os.path.join(self.save_dir, follow + '.txt')
-                # c.Media = True
-                c.Videos = True
-                c.Since = '2019-12-01'
+                c.Media = True
+                # c.Videos = True
+                # c.Since = '2019-12-01'
                 twint.run.Search(c)
 
     def get_pic_url(self):
@@ -52,7 +54,7 @@ class AllTwitter():
 
 
 if __name__ == '__main__':
-    at = AllTwitter('1244192592')
+    at = AllTwitter('jordan124419')
     at.get_all_twitter()
     # at.get_all_followling()
     # at.resort()

@@ -1,11 +1,11 @@
-import twint_file
+import twint
 import schedule
 import time
 
 # you can change the name of each "job" after "def" if you'd like.
 def jobone():
 	print ("Fetching Tweets")
-	c = twint_file.Config()
+	c = twint.Config()
 	# choose username (optional)
 	c.Username = "insert username here"
 	# choose search term (optional)
@@ -20,11 +20,11 @@ def jobone():
 	c.Custom = ["date", "time", "username", "tweet", "link", "likes", "retweets", "replies", "mentions", "hashtags"]
 	# change the name of the csv file
 	c.Output = "filename.csv"
-	twint_file.run.Search(c)
+	twint.run.Search(c)
 
 def jobtwo():
 	print ("Fetching Tweets")
-	c = twint_file.Config()
+	c = twint.Config()
 	# choose username (optional)
 	c.Username = "insert username here"
 	# choose search term (optional)
@@ -39,7 +39,7 @@ def jobtwo():
 	c.Custom = ["date", "time", "username", "tweet", "link", "likes", "retweets", "replies", "mentions", "hashtags"]
 	# change the name of the csv file
 	c.Output = "filename2.csv"
-	twint_file.run.Search(c)
+	twint.run.Search(c)
 
 # run once when you start the program
 

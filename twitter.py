@@ -1,11 +1,11 @@
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor,ProcessPoolExecutor
 from concurrent.futures import as_completed
 
-# import gevent
-# from gevent import monkey
-# monkey.patch_all()
+import gevent
+from gevent import monkey
+monkey.patch_all()
 import requests
 from lxml import etree
 import re
@@ -61,25 +61,26 @@ class Twitter():
         file_path = os.path.join(path, name)
         if os.path.exists(file_path):
             print('已下载:%s' % file_path)
+            return
         pic_content = requests.get(url, timeout=10, proxies=self.proxies).content
         with open(file_path, 'wb') as f:
             f.write(pic_content)
             print(file_path)
 
     def download(self, pic_t, path):
-        # print('download:%s' % pic_t)
-        pic_urls = self.get_pics_url(pic_t)
-        # for pic_url in pic_urls:
-        #     self.downloadpic(pic_url, path)
+        real_url = requests.get(pic_t, proxies=self.proxies).url
+        if 'photo' in real_url:
+            pic_urls = self.get_pics_url(real_url)
+            for pic_url in pic_urls:
+                self.downloadpic(pic_url, path)
 
-        # if not pic_urls:
-        res = requests.get(pic_t, proxies=self.proxies)
-        print(res.url)
-        twitter_dl = TwitterDownloader(res.url, output_dir=path)
-        twitter_dl.download()
+        elif 'video' in real_url:
 
-    def count_pic(self):
-        l = os.listdir('download_twitter')
+            twitter_dl = TwitterDownloader(real_url, output_dir=path)
+            twitter_dl.download()
+
+    def count_pic(self,path):
+        l = os.listdir(path)
         print('图片数量:%d' % len(l))
 
     @count_time
@@ -93,20 +94,23 @@ class Twitter():
             pic_t_list = self.get_twitter(os.path.join(self.follow_dir, follow))
             print('pic_t_list:%s' % len(pic_t_list))
 
-            #thead pool
-            # t_list = []
-            # with ThreadPoolExecutor() as executor:
-            #     for pic_t in pic_t_list:
-            #         obj = executor.submit(self.download, pic_t, path)
-            #         t_list.append(obj)
-            #     as_completed(t_list)
 
-            #single thread
-            for pic_t in pic_t_list:
-                self.download(pic_t,path)
+            # thead pool
+            t_list = []
+            with ThreadPoolExecutor() as executor:
+                for pic_t in pic_t_list:
+                    obj = executor.submit(self.download, pic_t, path)
+                    t_list.append(obj)
+                as_completed(t_list)
 
 
-            self.count_pic()
+
+            # single thread
+            # for pic_t in pic_t_list:
+            #     self.download(pic_t,path)
+
+
+            self.count_pic(path)
 
 
 if __name__ == '__main__':

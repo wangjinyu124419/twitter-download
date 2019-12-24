@@ -26,9 +26,10 @@ class TwitterDownloader:
     """
     video_player_prefix = 'https://twitter.com/i/videos/tweet/'
     video_api = 'https://api.twitter.com/1.1/videos/tweet/config/'
-    tweet_data = {}
+    # tweet_data = {}
 
     def __init__(self, tweet_url, output_dir='./output', debug=0):
+        self.tweet_data = {}
         self.tweet_url = tweet_url
         self.output_dir = output_dir
         self.debug = debug
@@ -69,6 +70,13 @@ class TwitterDownloader:
             for plist in playlist.playlists[-1:]:
                 resolution = str(plist.stream_info.resolution[0]) + 'x' + str(plist.stream_info.resolution[1])
                 resolution_file = Path(self.storage) / Path(self.tweet_data['id'] + '_' + resolution+'.mp4')
+                import  os
+                abs_path = os.path.abspath(__file__)
+                base_dir = os.path.dirname(os.path.dirname(abs_path))
+                file_path = os.path.join(base_dir, resolution_file)
+                if os.path.exists(file_path):
+                    print('已下载:%s' % file_path)
+                    return
 
                 print('[+] Downloading ' + self.tweet_data['id'])
 

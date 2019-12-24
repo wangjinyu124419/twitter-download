@@ -1,4 +1,4 @@
-import twint_file
+import twint
 import os
 
 '''
@@ -35,24 +35,24 @@ def test_csv(c, run):
     run(c)
 
 def main():
-    c = twint_file.Config()
+    c = twint.Config()
     c.Username = "verified"
     c.Limit = 20
     c.Store_object = True
 
     # Seperate objects are neccessary.
 
-    f = twint_file.Config()
+    f = twint.Config()
     f.Username = "verified"
     f.Limit = 20
     f.Store_object = True
     f.User_full = True
     
-    runs = [twint_file.run.Following,
-            twint_file.run.Followers,
-            twint_file.run.Search,
-            twint_file.run.Profile,
-            twint_file.run.Favorites
+    runs = [twint.run.Following,
+            twint.run.Followers,
+            twint.run.Search,
+            twint.run.Profile,
+            twint.run.Favorites
             ]
     
     tests = [test_reg, test_json, test_csv, test_db]
@@ -64,7 +64,7 @@ def main():
             test(f, run)
 
     for run in runs[2:]:
-        if run == twint_file.run.Search:
+        if run == twint.run.Search:
             c.Since = "2012-1-1 20:30:22"
             c.Until = "2017-1-1"
         else:

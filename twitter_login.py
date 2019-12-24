@@ -104,7 +104,7 @@ class Peta(NinePorn):
     @count_time
     def main(self):
         self.login()
-        url_list =self.get_twitter('file.txt')
+        url_list =self.get_twitter('Ding1204.txt')
         for url  in url_list:
 
             self.download(url)

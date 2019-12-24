@@ -94,24 +94,24 @@ More detail about the commands and options are located in the [wiki](https://git
 Twint can now be used as a module and supports custom formatting. **More details are located in the [wiki](https://github.com/twintproject/twint/wiki/Module)**
 
 ```python
-import twint_file
+import twint
 
 # Configure
-c = twint_file.Config()
+c = twint.Config()
 c.Username = "now"
 c.Search = "fruit"
 
 # Run
-twint_file.run.Search(c)
+twint.run.Search(c)
 ```
 > Output
 
 `955511208597184512 2018-01-22 18:43:19 GMT <now> pineapples are the best fruit`
 
 ```python
-import twint_file
+import twint
 
-c = twint_file.Config()
+c = twint.Config()
 
 c.Username = "noneprivacy"
 c.Custom["tweet"] = ["id"]
@@ -120,7 +120,7 @@ c.Limit = 10
 c.Store_csv = True
 c.Output = "none"
 
-twint_file.run.Search(c)
+twint.run.Search(c)
 ```
 
 ## Storing Options
@@ -183,9 +183,9 @@ Twitter can shadow-ban accounts, which means that their tweets will not be avail
 or
 
 ```python
-import twint_file
+import twint
 
-c = twint_file.Config()
+c = twint.Config()
 c.Username = "noneprivacy"
 c.Limit = 100
 c.Store_csv = True
@@ -193,7 +193,7 @@ c.Output = "none.csv"
 c.Lang = "en"
 c.Translate = True
 c.TranslateDest = "it"
-twint_file.run.Search(c)
+twint.run.Search(c)
 ```
 
 Notes:
