@@ -91,7 +91,7 @@ class TwitterDownloader:
                 for ts_uri in ts_m3u8_parse.segments.uri:
                     # ts_list.append(video_host + ts_uri)
 
-                    ts_file = requests.get(video_host + ts_uri)
+                    ts_file = requests.get(video_host + ts_uri, proxies=proxies)
                     fname = ts_uri.split('/')[-1]
                     ts_path = Path(self.storage) / Path(fname)
                     ts_list.append(ts_path)
@@ -109,14 +109,15 @@ class TwitterDownloader:
                             shutil.copyfileobj(fd, wfd, 1024 * 1024 * 10)
 
                 for ts in ts_full_file_list:
-                    print('\t[*] Doing the magic ...')
+                    print('\t[*] Doing the magic:%s'%self.tweet_data['tweet_url'])
                     ffmpeg \
                         .input(ts) \
                         .output(str(resolution_file), acodec='copy', vcodec='libx264', format='mp4', loglevel='error') \
                         .overwrite_output() \
                         .run()
 
-                print('\t[+] Doing cleanup')
+                print('\t[+] Doing cleanup:%s'%self.tweet_data['tweet_url'])
+                print(resolution_file)
 
                 for ts in ts_list:
                     p = Path(ts)
@@ -128,7 +129,7 @@ class TwitterDownloader:
 
         else:
             print(
-                '[-] Sorry, single resolution video download is not yet implemented. Please submit a bug report with the link to the tweet.')
+                '[-] Sorry,single resolution video download is not yet implemented. Please submit a bug report with the link to the tweet:%s'%self.tweet_data['tweet_url'])
 
     def __get_bearer_token(self):
         video_player_url = self.video_player_prefix + self.tweet_data['id']

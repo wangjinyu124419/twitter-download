@@ -1,11 +1,8 @@
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor,ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
-import gevent
-from gevent import monkey
-monkey.patch_all()
 import requests
 from lxml import etree
 import re
@@ -44,20 +41,24 @@ class Twitter():
         return pic_t_list
 
     def get_pics_url(self, url):
-        page_source = requests.get(url, timeout=10, proxies=self.proxies).content
+        page_source = requests.get(url, timeout=10, proxies=self.proxies).text
         selector = etree.HTML(page_source)
         # print('url:%s,page_source:%s'%(url,page_source))
         # pic_urls=selector.xpath('//div[@class="AdaptiveMedia-quadPhoto"]//img/@src')
-        pic_urls = selector.xpath(
-            '//div[@class="permalink-inner permalink-tweet-container"]//img[starts-with(@src,"https://pbs.twimg.com/media")]/@src')
-        # pic_urls=selector.xpath('//div[@class="AdaptiveMedia-quadPhoto"]//img/@src')
-        # print('pic_urls:%s'%pic_urls)
-        # is_video=selector.xpath('//video[@preload="none"]/@src')
+        # pic_urls = selector.xpath(
+            # '//div[@class="permalink-inner permalink-tweet-container"]//img[starts-with(@src,"https://pbs.twimg.com/media")]/@src')
+        # if not pic_urls:
+        pic_urls=selector.xpath('//meta[starts-with(@content,"https://pbs.twimg.com/media")]/@content')
 
+        #gif
+        if not pic_urls:
+            pic_urls = selector.xpath('//meta[starts-with(@content,"https://pbs.twimg.com/tweet_video_thumb")]/@content')
+
+            # print('url:%s\npic_urls:%s'%(url,pic_urls))
         return pic_urls
 
     def downloadpic(self, url, path):
-        name = url.split('/')[-1]
+        name = url.split('/')[-1].split(":")[0]
         file_path = os.path.join(path, name)
         if os.path.exists(file_path):
             print('已下载:%s' % file_path)
@@ -66,18 +67,41 @@ class Twitter():
         with open(file_path, 'wb') as f:
             f.write(pic_content)
             print(file_path)
+    def downloadgif(self, url, path):
+        #https://pbs.twimg.com/tweet_video_thumb/Du3_VqvVsAAjB41.jpg
+        #https://video.twimg.com/tweet_video/Du3_VqvVsAAjB41.mp4
+        base_gif_url='https://video.twimg.com/tweet_video/{}.mp4'
+        name = url.split('/')[-1].split(".")[0]
+        gif_url = base_gif_url.format(name)
+        file_path = os.path.join(path, name+'.mp4')
+        if os.path.exists(file_path):
+            print('已下载:%s' % file_path)
+            return
+        pic_content = requests.get(gif_url, timeout=30, proxies=self.proxies).content
+        with open(file_path, 'wb') as f:
+            f.write(pic_content)
+            print(file_path)
+
 
     def download(self, pic_t, path):
         real_url = requests.get(pic_t, proxies=self.proxies).url
-        if 'photo' in real_url:
-            pic_urls = self.get_pics_url(real_url)
-            for pic_url in pic_urls:
-                self.downloadpic(pic_url, path)
-
-        elif 'video' in real_url:
+        if 'video' in real_url:
 
             twitter_dl = TwitterDownloader(real_url, output_dir=path)
             twitter_dl.download()
+
+        else:
+            pic_urls = self.get_pics_url(real_url)
+            if not pic_urls:
+                print('pic_urls:%s'%real_url)
+
+            for pic_url in pic_urls:
+                if 'tweet_video_thumb' in pic_url:
+                    self.downloadgif(pic_url,path)
+                    continue
+                self.downloadpic(pic_url, path)
+
+
 
     def count_pic(self,path):
         l = os.listdir(path)
@@ -97,10 +121,17 @@ class Twitter():
 
             # thead pool
             t_list = []
+            # with ThreadPoolExecutor(max_workers=8) as executor:
             with ThreadPoolExecutor() as executor:
                 for pic_t in pic_t_list:
                     obj = executor.submit(self.download, pic_t, path)
                     t_list.append(obj)
+                for future in as_completed(t_list):
+                    try:
+                        future.result()
+                    except Exception as e:
+                        print(pic_t,e)
+
                 as_completed(t_list)
 
 
