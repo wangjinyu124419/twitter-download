@@ -1,6 +1,10 @@
 import os
 import sys
 import locale
+import traceback
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor,as_completed
+
+
 from twint import twint
 
 
@@ -46,17 +50,18 @@ class AllTwitter():
     def get_all_twitter(self):
         with open(self.following_file, encoding='utf8') as f:
             follow_list = [follow.strip() for follow in f.readlines()]
-            for follow in follow_list:
-                c = twint.Config()
-                c.Proxy_host = '127.0.0.1'
-                c.Proxy_port = '1080'
-                c.Proxy_type = 'http'
-                c.Username = follow
-                c.Output = os.path.join(self.save_dir, follow + '.txt')
-                c.Media = True
-                # c.Videos = True
-                # c.Since = '2019-12-01'
-                twint.run.Search(c)
+            t_list = []
+            with ProcessPoolExecutor() as executor:
+                for follow in follow_list:
+                    obj = executor.submit(self.get_one_user, follow)
+                    t_list.append(obj)
+                for future in as_completed(t_list):
+                    try:
+                        future.result()
+                    except Exception:
+                        print(follow+'\n', traceback.format_exc())
+
+
 
     def get_pic_url(self):
         pass
@@ -68,7 +73,7 @@ class AllTwitter():
 
 if __name__ == '__main__':
     at = AllTwitter('Jordan124419')
-    # at.get_all_twitter()
+    at.get_all_twitter()
     # at.get_all_followling()
     # at.resort()
-    at.main()
+    # at.main()

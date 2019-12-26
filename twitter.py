@@ -151,7 +151,7 @@ class Twitter():
     def main(self):
         at = AllTwitter(user='jordan124419')
         # at.main()
-        # at.get_all_twitter()
+        at.get_all_twitter()
         follow_list = os.listdir(self.follow_dir)
         for follow in follow_list:
             print('download user:%s' % follow)
