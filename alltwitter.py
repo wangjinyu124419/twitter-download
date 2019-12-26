@@ -35,12 +35,12 @@ class AllTwitter():
             follow_list = [follow.strip() for follow in f.readlines()]
             for follow in follow_list:
                 c = twint.Config()
-                c.Proxy_host = '127.0.0.1'
-                c.Proxy_port = '1080'
-                c.Proxy_type = 'http'
+                # c.Proxy_host = '127.0.0.1'
+                # c.Proxy_port = '1080'
+                # c.Proxy_type = 'http'
                 c.Username = follow
                 c.Output = os.path.join(self.save_dir, follow + '.txt')
-                # c.Media = True
+                c.Media = True
                 # c.Videos = True
                 # c.Since = '2019-12-01'
                 twint.run.Search(c)
@@ -54,7 +54,7 @@ class AllTwitter():
 
 
 if __name__ == '__main__':
-    at = AllTwitter('jordan124419')
+    at = AllTwitter('124419')
     at.get_all_twitter()
     # at.get_all_followling()
     # at.resort()
