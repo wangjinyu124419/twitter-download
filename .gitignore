@@ -9,7 +9,7 @@ download_twitter/
 follow/
 config.ini
 twint/storage/mysql.py
-
+*.pyc
 # Node Dependency directories
 node_modules/
 jspm_packages/

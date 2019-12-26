@@ -1,4 +1,6 @@
+import multiprocessing
 import os
+import threading
 import time
 import re
 import traceback
@@ -9,16 +11,20 @@ import requests
 from lxml import etree
 
 from twitter_video_downloader.twitter_dl import TwitterDownloader
+from alltwitter import AllTwitter
+
+# lock = threading.Lock()
+lock = multiprocessing.Lock()
 
 
 def count_time(fun):
     def warpper(*args):
         s_time = time.time()
+        arg=args[1] if len(args)>1 else '-'
         fun(*args)
         e_time = time.time()
         t_time = e_time - s_time
-        print('%s耗时：%s' % (fun.__name__, t_time))
-
+        print('%s耗时：%s,参数:%s'% (fun.__name__, t_time,arg))
     return warpper
 
 
@@ -73,7 +79,7 @@ class Twitter():
         name = url.split('/')[-1].split(":")[0]
         file_path = os.path.join(path, name)
         if os.path.exists(file_path):
-            print('文件:%s' % file_path)
+            print('文件已存在:%s' % file_path)
             return
         pic_content = requests.get(url, timeout=10, proxies=self.proxies).content
         with open(file_path, 'wb') as f:
@@ -95,25 +101,33 @@ class Twitter():
             f.write(pic_content)
             print(file_path)
 
+    @count_time
     def download(self, pic_t, path):
-        # print(pic_t)
+        print(pic_t)
         real_url = requests.get(pic_t, proxies=self.proxies).url
-        if 'video' in real_url:
+        pic_urls = self.get_pics_url(real_url)
 
+        for pic_url in pic_urls:
+            if 'tweet_video_thumb' in pic_url:
+                self.downloadgif(pic_url, path)
+                continue
+            self.downloadpic(pic_url, path)
+
+        if not pic_urls:
             twitter_dl = TwitterDownloader(real_url, output_dir=path)
-            twitter_dl.download()
-
-        else:
-            pic_urls = self.get_pics_url(real_url)
-            if not pic_urls:
-                print('pic_urls:%s' % real_url)
+            try:
+                lock.acquire()
+                print("上锁:%s"%real_url)
+                twitter_dl.download()
+            except Exception:
+                print('下载异常:%s'%real_url)
                 raise ValueError
+            finally:
+                lock.release()
+                print("解锁:%s" % real_url)
 
-            for pic_url in pic_urls:
-                if 'tweet_video_thumb' in pic_url:
-                    self.downloadgif(pic_url, path)
-                    continue
-                self.downloadpic(pic_url, path)
+
+
         self.record_repeat(pic_t)
 
     def count_pic(self, path):
@@ -135,6 +149,9 @@ class Twitter():
             f.write(url + '\n')
     @count_time
     def main(self):
+        at = AllTwitter(user='jordan124419')
+        # at.main()
+        # at.get_all_twitter()
         follow_list = os.listdir(self.follow_dir)
         for follow in follow_list:
             print('download user:%s' % follow)
@@ -146,38 +163,35 @@ class Twitter():
             print('pic_t_list:%s' % len(pic_t_list))
 
             # thead pool
-            # t_list = []
-            # with ThreadPoolExecutor() as executor:
-            #     for pic_t in pic_t_list:
-            #         obj = executor.submit(self.download, pic_t, path)
-            #         t_list.append(obj)
-            #     for future in as_completed(t_list):
-            #         try:
-            #             future.result()
-            #         except Exception:
-            #             print(pic_t+'\n', traceback.format_exc())
-
-            # process pool
-            p_list = []
-            with ProcessPoolExecutor() as executor:
+            t_list = []
+            with ThreadPoolExecutor() as executor:
                 for pic_t in pic_t_list:
                     if self.check_repeat(pic_t):
                         continue
                     obj = executor.submit(self.download, pic_t, path)
-                    p_list.append(obj)
-                for future in as_completed(p_list):
+                    t_list.append(obj)
+                for future in as_completed(t_list):
                     try:
                         future.result()
                     except Exception:
-                        print('pic_t:%s'%pic_t+'\n', traceback.format_exc())
+                        print(pic_t+'\n', traceback.format_exc())
 
-
-
-
+            # process pool
+            # p_list = []
+            # with ProcessPoolExecutor() as executor:
+            #     for pic_t in pic_t_list:
+            #         if self.check_repeat(pic_t):
+            #             continue
+            #         obj = executor.submit(self.download, pic_t, path)
+            #         p_list.append(obj)
+            #     for future in as_completed(p_list):
+            #         try:
+            #             future.result()
+            #         except Exception:
+            #             print('pic_t:%s'%pic_t+'\n', traceback.format_exc())
             # single thread
             # for pic_t in pic_t_list:
             #     self.download(pic_t,path)
-
             self.count_pic(path)
 
 
