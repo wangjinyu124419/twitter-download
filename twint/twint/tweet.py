@@ -7,8 +7,8 @@ from googletransx import Translator
 # ref.
 # - https://github.com/x0rzkov/py-googletrans#basic-usage
 translator = Translator()
-# import locale
-# locale.setlocale(locale.LC_ALL, 'en')
+import locale
+locale.setlocale(locale.LC_ALL, 'en')
 
 class tweet:
     """Define Tweet class
