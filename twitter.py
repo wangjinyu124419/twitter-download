@@ -67,13 +67,11 @@ class Twitter():
         # if not pic_urls:
         pic_urls = selector.xpath('//meta[starts-with(@content,"https://pbs.twimg.com/media")]/@content')
 
-        # gif
-        if not pic_urls:
-            pic_urls = selector.xpath(
-                '//meta[starts-with(@content,"https://pbs.twimg.com/tweet_video_thumb")]/@content')
+
+        gif_urls = selector.xpath('//meta[starts-with(@content,"https://pbs.twimg.com/tweet_video_thumb")]/@content')
 
             # print('url:%s\npic_urls:%s'%(url,pic_urls))
-        return pic_urls
+        return pic_urls, gif_urls
 
     def downloadpic(self, url, path):
         name = url.split('/')[-1].split(":")[0]
@@ -103,29 +101,30 @@ class Twitter():
 
     # @count_time
     def download(self, pic_t, path):
+        pic_t = requests.get(pic_t, proxies=self.proxies).url
         print("当前执行的线程为:%s,url:%s"%(threading.current_thread(),pic_t))
-
-        real_url = requests.get(pic_t, proxies=self.proxies).url
-        pic_urls = self.get_pics_url(real_url)
-
-        for pic_url in pic_urls:
-            if 'tweet_video_thumb' in pic_url:
+        pic_urls, gif_urls = self.get_pics_url(pic_t)
+        if pic_urls:
+            for pic_url in pic_urls:
+                self.downloadpic(pic_url, path)
+            return
+        if gif_urls:
+            for pic_url in gif_urls:
                 self.downloadgif(pic_url, path)
-                continue
-            self.downloadpic(pic_url, path)
+            return
 
-        if not pic_urls:
-            twitter_dl = TwitterDownloader(real_url, output_dir=path)
+        if not pic_urls and not gif_urls:
+            twitter_dl = TwitterDownloader(pic_t, output_dir=path)
             try:
                 lock.acquire()
-                print("上锁:%s"%real_url)
+                print("上锁:%s"%pic_t)
                 twitter_dl.download()
             except Exception:
-                print('下载异常:%s'%real_url)
+                print('下载异常:%s'%pic_t)
                 raise ValueError
             finally:
                 lock.release()
-                print("解锁:%s" % real_url)
+                print("解锁:%s" % pic_t)
 
 
 
