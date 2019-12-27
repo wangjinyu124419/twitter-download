@@ -112,4 +112,5 @@ ENV/
 *.csv
 *.json
 *.txt
+!requirements.txt
 .idea/
