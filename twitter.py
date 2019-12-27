@@ -15,8 +15,8 @@ from alltwitter import AllTwitter
 
 # lock = threading.Lock()
 lock = multiprocessing.Lock()
-base_dir = r'F:\爬虫\twitter\download_twitter'
-
+base_dir = r'K:\爬虫\twitter\download_twitter'
+pre_url='https://twitter.com/'
 def count_time(fun):
     def warpper(*args):
         s_time = time.time()
@@ -44,6 +44,13 @@ class Twitter():
         # self.w_file=open(self.recorder_file,'w')
         # self.r_file=open(self.recorder_file,'r')
 
+    def get_nickname(self,follow):
+        url=pre_url+follow
+        page_source = requests.get(url, timeout=10, proxies=self.proxies).text
+        selector = etree.HTML(page_source)
+        nickname = selector.xpath('//h1[@class="ProfileHeaderCard-name"]/a/text()')[0]
+        print(nickname)
+        return nickname
 
     def get_twitter(self, file):
         pic_t_list = []
@@ -155,9 +162,11 @@ class Twitter():
         follow_list = os.listdir(self.follow_dir)
         for follow in follow_list:
             print('download user:%s' % follow)
-            path = os.path.join(base_dir, follow.split('.')[0])
+            nick_name = self.get_nickname(follow.split('.')[0])
+            path = os.path.join(base_dir,nick_name)
             if not os.path.exists(path):
                 os.makedirs(path)
+                print('创建：%s'%nick_name)
             pic_t_list = self.get_twitter(os.path.join(self.follow_dir, follow))
             # pic_t_list = ['https://pic.twitter.com/LYvQA7I5Dn','123']
             print('pic_t_list:%s' % len(pic_t_list))
