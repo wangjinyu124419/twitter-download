@@ -41,7 +41,7 @@ class AllTwitter():
         c.Proxy_type = 'http'
         c.Username = follow
         c.Output = os.path.join(self.save_dir, follow + '.txt')
-        c.Media = True
+        # c.Media = True
         # c.Videos = True
         # c.Since = '2019-12-01'
         twint.run.Search(c)

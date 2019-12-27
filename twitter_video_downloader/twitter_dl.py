@@ -2,6 +2,7 @@
 
 
 import argparse
+import time
 
 import requests
 import json
@@ -11,6 +12,15 @@ from pathlib import Path
 import re
 import ffmpeg
 import shutil
+def count_time(fun):
+    def warpper(*args):
+        s_time = time.time()
+        arg=args[0].tweet_url
+        fun(*args)
+        e_time = time.time()
+        t_time = e_time - s_time
+        print('twitter_dl:%s耗时：%s,参数:%s'% (fun.__name__, t_time,arg))
+    return warpper
 
 proxies = {
     'http': 'http://127.0.0.1:1080',
@@ -55,6 +65,7 @@ class TwitterDownloader:
         self.requests = requests.Session()
         self.requests.proxies=proxies
 
+    @count_time
     def download(self):
         self.__debug('Tweet URL', self.tweet_data['tweet_url'])
 

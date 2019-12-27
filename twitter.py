@@ -15,7 +15,7 @@ from alltwitter import AllTwitter
 
 # lock = threading.Lock()
 lock = multiprocessing.Lock()
-
+base_dir = r'F:\爬虫\twitter\download_twitter'
 
 def count_time(fun):
     def warpper(*args):
@@ -101,9 +101,10 @@ class Twitter():
             f.write(pic_content)
             print(file_path)
 
-    @count_time
+    # @count_time
     def download(self, pic_t, path):
-        print(pic_t)
+        print("当前执行的线程为:%s,url:%s"%(threading.current_thread(),pic_t))
+
         real_url = requests.get(pic_t, proxies=self.proxies).url
         pic_urls = self.get_pics_url(real_url)
 
@@ -149,13 +150,13 @@ class Twitter():
             f.write(url + '\n')
     @count_time
     def main(self):
-        at = AllTwitter(user='jordan124419')
+        # at = AllTwitter(user='jordan124419')
         # at.main()
-        at.get_all_twitter()
+        # at.get_all_twitter()
         follow_list = os.listdir(self.follow_dir)
         for follow in follow_list:
             print('download user:%s' % follow)
-            path = os.path.join('download_twitter', follow.split('.')[0])
+            path = os.path.join(base_dir, follow.split('.')[0])
             if not os.path.exists(path):
                 os.makedirs(path)
             pic_t_list = self.get_twitter(os.path.join(self.follow_dir, follow))
