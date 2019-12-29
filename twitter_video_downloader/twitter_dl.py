@@ -3,7 +3,7 @@
 
 import argparse
 import time
-
+import os
 import requests
 import json
 import urllib.parse
@@ -67,6 +67,13 @@ class TwitterDownloader:
 
     @count_time
     def download(self):
+        resolution_file = Path(self.storage) / Path(self.tweet_data['id'] + '.mp4')
+        # abs_path = os.path.abspath(__file__)
+        # base_dir = os.path.dirname(os.path.dirname(abs_path))
+        # file_path = os.path.join(base_dir, resolution_file)
+        if os.path.exists(resolution_file):
+            print('已下载:%s' % resolution_file)
+            return
         self.__debug('Tweet URL', self.tweet_data['tweet_url'])
 
         # Get the bearer token
@@ -80,19 +87,8 @@ class TwitterDownloader:
 
             for plist in playlist.playlists[-1:]:
                 resolution = str(plist.stream_info.resolution[0]) + 'x' + str(plist.stream_info.resolution[1])
-                resolution_file = Path(self.storage) / Path(self.tweet_data['id'] + '_' + resolution+'.mp4')
-                import  os
-                abs_path = os.path.abspath(__file__)
-                base_dir = os.path.dirname(os.path.dirname(abs_path))
-                file_path = os.path.join(base_dir, resolution_file)
-                if os.path.exists(file_path):
-                    print('已下载:%s' % file_path)
-                    return
-
                 print('[+] Downloading ' + self.tweet_data['id'])
-
                 playlist_url = video_host + plist.uri
-
                 ts_m3u8_response = self.requests.get(playlist_url, headers={'Authorization': None})
                 ts_m3u8_parse = m3u8.loads(ts_m3u8_response.text)
 

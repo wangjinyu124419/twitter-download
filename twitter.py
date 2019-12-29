@@ -9,6 +9,7 @@ from concurrent.futures import as_completed
 
 import requests
 from lxml import etree
+from retry import retry
 
 from twitter_video_downloader.twitter_dl import TwitterDownloader
 from alltwitter import AllTwitter
@@ -34,36 +35,42 @@ class Twitter():
             'http': 'http://127.0.0.1:1080',
             'https': 'https://127.0.0.1:1080',
         }
-        self.orgin_file = r'124419.txt'
-        self.user = 'Ding1204'
-        self.follow_dir = 'follow'
+        self.follow_dir = 'followall'
         self.recorder_file='recorder_file.txt'
+        with open(self.recorder_file) as f:
+            self.recoder_list = [ url.strip() for url in f.readlines()]
         if not os.path.exists(self.recorder_file):
             with open(self.recorder_file,'w') as f:
                 pass
         # self.w_file=open(self.recorder_file,'w')
         # self.r_file=open(self.recorder_file,'r')
 
+    @retry(delay=10,tries=5, backoff=2, max_delay=160)
     def get_nickname(self,follow):
         url=pre_url+follow
-        page_source = requests.get(url, timeout=10, proxies=self.proxies).text
-        selector = etree.HTML(page_source)
-        nickname = selector.xpath('//h1[@class="ProfileHeaderCard-name"]/a/text()')[0]
-        print(nickname)
-        return nickname
+        try:
+            page_source = requests.get(url, timeout=10, proxies=self.proxies).text
+            selector = etree.HTML(page_source)
+            nickname = selector.xpath('//h1[@class="ProfileHeaderCard-name"]/a/text()')[0]
+
+        except:
+            nickname=follow
+        legal_nickname = re.sub(r"[\/\\\:\*\?\"\<\>\|!！\.\s]", "", nickname)
+        return legal_nickname
 
     def get_twitter(self, file):
         pic_t_list = []
         with open(file, encoding='utf8') as f:
             t_list = f.readlines()
             for twitter in t_list:
-                res = re.match('.*(pic.twitter.com.*)', twitter)
+                res = re.match('.*(pic.twitter.com/\w*)', twitter)
                 if res:
                     pic_t_list.append(res.group(1))
         pic_t_list = ['https://' + pic_t for pic_t in pic_t_list]
         # print(pic_t_list)
         return pic_t_list
 
+    # @retry(delay=10, backoff=2, max_delay=160)
     def get_pics_url(self, url):
         page_source = requests.get(url, timeout=10, proxies=self.proxies).text
         selector = etree.HTML(page_source)
@@ -80,6 +87,7 @@ class Twitter():
             # print('url:%s\npic_urls:%s'%(url,pic_urls))
         return pic_urls, gif_urls
 
+    # @retry(delay=10, backoff=2, max_delay=160)
     def downloadpic(self, url, path):
         name = url.split('/')[-1].split(":")[0]
         file_path = os.path.join(path, name)
@@ -91,6 +99,7 @@ class Twitter():
             f.write(pic_content)
             print(file_path)
 
+    # @retry(delay=10, backoff=2, max_delay=160)
     def downloadgif(self, url, path):
         # https://pbs.twimg.com/tweet_video_thumb/Du3_VqvVsAAjB41.jpg
         # https://video.twimg.com/tweet_video/Du3_VqvVsAAjB41.mp4
@@ -106,54 +115,62 @@ class Twitter():
             f.write(pic_content)
             print(file_path)
 
-    # @count_time
-    def download(self, pic_t, path):
-        pic_t = requests.get(pic_t, proxies=self.proxies).url
-        print("当前执行的线程为:%s,url:%s"%(threading.current_thread(),pic_t))
-        pic_urls, gif_urls = self.get_pics_url(pic_t)
-        if pic_urls:
-            for pic_url in pic_urls:
-                self.downloadpic(pic_url, path)
-            return
-        if gif_urls:
-            for pic_url in gif_urls:
-                self.downloadgif(pic_url, path)
-            return
-
-        if not pic_urls and not gif_urls:
-            twitter_dl = TwitterDownloader(pic_t, output_dir=path)
-            try:
-                lock.acquire()
-                print("上锁:%s"%pic_t)
-                twitter_dl.download()
-            except Exception:
-                print('下载异常:%s'%pic_t)
-                raise ValueError
-            finally:
-                lock.release()
-                print("解锁:%s" % pic_t)
-
-
-
-        self.record_repeat(pic_t)
-
     def count_pic(self, path):
         l = os.listdir(path)
         print('下载数量:%d' % len(l))
 
     def check_repeat(self,url):
         try:
-            with open(self.recorder_file) as f:
-                url_list = [ url.strip() for url in f.readlines()]
-                if url in url_list:
-                    print('已经下载:%s'%url)
-                    return True
+            if url in self.recoder_list:
+                print('已经下载:%s' % url)
+                return True
+            # with open(self.recorder_file) as f:
+            #     url_list = [ url.strip() for url in f.readlines()]
+            #     if url in url_list:
+            #         print('已经下载:%s'%url)
+            #         return True
         except Exception:
             print(traceback.format_exc())
 
     def record_repeat(self,url):
         with open(self.recorder_file,'a') as f:
             f.write(url + '\n')
+    # @count_time
+    @retry(delay=10,tries=5, backoff=2, max_delay=160)
+    def download(self, pic_t, path):
+        status_code = requests.get(pic_t, proxies=self.proxies).status_code
+        if status_code!=200:
+            print('%s状态码错误:%d'%(pic_t,status_code))
+            self.record_repeat(pic_t)
+            return
+        real_url = requests.get(pic_t, proxies=self.proxies).url
+        if 'protected_redirect' in real_url:
+            print("受保护推文:%s"%pic_t)
+            return
+        print("当前执行的线程为:%s,url:%s"%(threading.current_thread(),real_url))
+        pic_urls, gif_urls = self.get_pics_url(real_url)
+        if pic_urls:
+            for pic_url in pic_urls:
+                self.downloadpic(pic_url, path)
+        if gif_urls:
+            for pic_url in gif_urls:
+                self.downloadgif(pic_url, path)
+        if not pic_urls and not gif_urls:
+            twitter_dl = TwitterDownloader(real_url, output_dir=path)
+            try:
+                lock.acquire()
+                print("上锁:%s"%real_url)
+                twitter_dl.download()
+            except Exception:
+                print('下载异常:%s'%real_url)
+                raise ValueError
+            finally:
+                lock.release()
+                print("解锁:%s" % real_url)
+        self.record_repeat(pic_t)
+
+
+
     @count_time
     def main(self):
         # at = AllTwitter(user='jordan124419')
