@@ -6,6 +6,7 @@ import re
 import traceback
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from concurrent.futures import as_completed
+from you_get.extractors.twitter import twitter_download
 
 import requests
 from lxml import etree
@@ -14,7 +15,6 @@ from retry import retry
 from twitter_video_downloader.twitter_dl import TwitterDownloader
 from alltwitter import AllTwitter
 
-# lock = threading.Lock()
 lock = multiprocessing.Lock()
 base_dir = r'K:\爬虫\twitter\download_twitter'
 pre_url='https://twitter.com/'
@@ -138,14 +138,14 @@ class Twitter():
     # @count_time
     @retry(delay=10,tries=5, backoff=2, max_delay=160)
     def download(self, pic_t, path):
-        status_code = requests.get(pic_t, proxies=self.proxies).status_code
+        status_code = requests.get(pic_t, proxies=self.proxies,timeout=10).status_code
         if status_code!=200:
             print('%s状态码错误:%d'%(pic_t,status_code))
             self.record_repeat(pic_t)
             return
-        real_url = requests.get(pic_t, proxies=self.proxies).url
-        if 'protected_redirect' in real_url:
-            print("受保护推文:%s"%pic_t)
+        real_url = requests.get(pic_t, proxies=self.proxies,timeout=10).url
+        if 'status'  not in real_url:
+            print("地址异常:%s"%real_url)
             return
         print("当前执行的线程为:%s,url:%s"%(threading.current_thread(),real_url))
         pic_urls, gif_urls = self.get_pics_url(real_url)
@@ -156,17 +156,18 @@ class Twitter():
             for pic_url in gif_urls:
                 self.downloadgif(pic_url, path)
         if not pic_urls and not gif_urls:
-            twitter_dl = TwitterDownloader(real_url, output_dir=path)
             try:
-                lock.acquire()
-                print("上锁:%s"%real_url)
-                twitter_dl.download()
-            except Exception:
-                print('下载异常:%s'%real_url)
-                raise ValueError
-            finally:
-                lock.release()
-                print("解锁:%s" % real_url)
+                twitter_download(real_url,output_dir=path)
+            except Exception as e:
+                print('twitter_download异常:%s'%pic_t,e)
+                try:
+                    twitter_dl = TwitterDownloader(real_url, output_dir=path)
+                    lock.acquire()
+                    print("上锁:%s"%real_url)
+                    twitter_dl.download()
+                finally:
+                    lock.release()
+                    print("解锁:%s" % real_url)
         self.record_repeat(pic_t)
 
 
@@ -189,19 +190,14 @@ class Twitter():
             print('pic_t_list:%s' % len(pic_t_list))
 
             # thead pool
-            t_list = []
             with ThreadPoolExecutor() as executor:
-                for pic_t in pic_t_list:
-                    if self.check_repeat(pic_t):
-                        continue
-                    obj = executor.submit(self.download, pic_t, path)
-                    t_list.append(obj)
-                for future in as_completed(t_list):
+                t_dict={executor.submit(self.download, pic_t, path):pic_t for pic_t in pic_t_list if not self.check_repeat(pic_t) }
+                for future in as_completed(t_dict):
+                    url=t_dict[future]
                     try:
                         future.result()
                     except Exception:
-                        print(pic_t+'\n', traceback.format_exc())
-
+                        print('download异常:%s'%url+'\n',traceback.format_exc())
             # process pool
             # p_list = []
             # with ProcessPoolExecutor() as executor:
