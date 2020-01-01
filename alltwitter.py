@@ -50,6 +50,8 @@ class AllTwitter():
         # c.Since = '2019-12-01'
         twint.run.Search(c)
         # twint.run.Profile(c)
+        # twint.run.Search(c)
+        # twint.run.Profile(c)
         print('%s已完成'%follow)
         with open('finish.txt', 'a') as f:
             f.write(follow+'\n')
@@ -68,16 +70,6 @@ class AllTwitter():
                     except Exception:
                         print('get_one_user异常:%s'%follow+'\n',traceback.format_exc())
 
-            # with ProcessPoolExecutor() as executor:
-            #     for follow in follow_list:
-            #         time.sleep(1)
-            #         obj = executor.submit(self.get_one_user, follow)
-            #         t_list.append(obj)
-            #     for future in as_completed(t_list):
-            #         try:
-            #             future.result()
-            #         except Exception:
-            #             print(follow+'\n', traceback.format_exc())
 
 
 
@@ -93,5 +85,4 @@ if __name__ == '__main__':
     at = AllTwitter('miss')
     at.get_all_twitter()
     # at.get_all_followling()
-    # at.resort()
     # at.main()
