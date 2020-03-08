@@ -27,6 +27,7 @@ def datecheck(datetimestamp, config):
         logme.debug(__name__+':datecheck:dateRangeTrue')
         d = mktime(strptime(config.Until,"%Y-%m-%d %H:%M:%S"))
         s = mktime(strptime(config.Since,"%Y-%m-%d %H:%M:%S"))
+
         if d < s:
            return False
     logme.debug(__name__+':datecheck:dateRangeFalse')
